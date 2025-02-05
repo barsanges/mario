@@ -1,0 +1,434 @@
+\documentclass[a4paper,11pt,headings=normal]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{biblatex}
+\usepackage{amsthm}
+\usepackage{newtx, helvet, courier} % Fontes
+\usepackage{booktabs, multirow, hyperref, xcolor}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\frenchsetup{AutoSpaceFootnotes=false}
+
+\newtheoremstyle{mythm}% name
+{0.5\baselineskip plus 0.2\baselineskip minus 0.2\baselineskip}% Space above
+{0.5\baselineskip plus 0.2\baselineskip minus 0.2\baselineskip}% Space below
+{\itshape}% Body font
+{\parindent}% Indent amount
+{}% Theorem head font
+{.}% Punctuation after theorem head
+{.5em}% Space after theorem head
+{\thmname{{\scshape#1}}\thmnumber{ #2}\thmnote{~---~#3}}% Theorem head spec (can be left empty, meaning ‘normal’)
+\theoremstyle{mythm}
+\newtheorem{cas}{Cas}
+
+\definecolor{rouge}{RGB}{191, 35, 41}
+
+\renewcommand{\sectionformat}{\thesection\autodot\enskip}
+\renewcommand{\subsectionformat}{\thesubsection\autodot\enskip}
+\RedeclareSectionCommand[indent=\the\parindent]{subsection}
+\setkomafont{disposition}{}
+\setkomafont{section}{\bfseries\large}
+\setkomafont{subsection}{\itshape\normalsize}
+\setkomafont{paragraph}{\itshape}
+
+\setlist[1]{noitemsep,topsep=0mm,left=\parindent}
+\setlist[2]{noitemsep,topsep=0mm,left=0pt}
+\setlist[enumerate,1]{label=(\alph*)}
+
+\urlstyle{same}
+
+\addbibresource{citations.bib}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=blue,
+    pdftitle={Mario - Règles},
+}
+
+\begin{document}
+
+\begin{flushleft}
+{\small \sffamily \url{https://github.com/barsanges/mario}}\vspace{0.8em}
+
+{\raggedleft \bfseries\LARGE Règles}\vspace{0.8em}
+
+{\itshape Version \input{VERSION}}
+\end{flushleft}
+
+\section{Principes}
+
+\emph{Mario} est un jeu d'affrontement direct en temps réel qui oppose
+deux joueurs sur un plateau de jeu en forme de graphe. L'objectif est
+d'éliminer complétement l'adversaire du plateau. Pour cela, les
+joueurs bénéficient chacun d'un afflux continu de troupes, qui leur
+permettent de prendre progressivement le contrôle de portions du
+graphe et de détruire des troupes adverses.
+
+\section{Plateau de jeu}
+
+Le plateau est constitué d'un graphe connexe, décomposé en $n$ nœuds
+et $p$ arêtes. Chaque arête relie exactement deux nœuds distincts. En
+début de partie, certains nœuds sont des \og centres \fg{} qui
+génèrent des troupes en continu pour un des deux camps. On note :
+\begin{itemize}
+  \item $P_i \subset \llbracket 1 ; p \rrbracket$ l'ensemble des
+    arêtes dont le nœud $i \in \llbracket 1 ; n \rrbracket$ constitue
+    une des extrêmités ;
+
+  \item $\alpha_{q,i} \geq 0$ la quantité instantanée de troupes
+    générée au nœud $i \in \llbracket 1 ; n \rrbracket$ pour le camp
+    $q \in \{1, 2\}$ tant qu'il n'a pas perdu le contrôle de ce nœud ;
+
+  \item $C_q = \{ i \in \llbracket 1 ; n \rrbracket / \alpha_{q,i} > 0
+    \}$, l'ensemble des centres du camp $q \in \{1, 2\}$ au début de
+    la partie ; le plateau de jeu est tel que $C_q \cap C_{\bar q} =
+    \emptyset$\footnote{Pour $q \in \{1, 2\}$, on note par convention
+    ${\bar q} = 2$ si $q = 1$, et ${\bar q} = 1$ si $q = 2$.} ;
+
+  \item $g_k \in \llbracket 1 ; n \rrbracket$ et $d_k \in \llbracket 1
+    ; n \rrbracket$ les deux extrêmités de l'arête $k$, avec la
+    convention $g_k < d_k$ ;
+
+  \item $\lambda_k > 0$ la longueur de l'arête $k \in \llbracket 1 ; p
+    \rrbracket$ ;
+
+  \item $\gamma_k > 0$ la section de l'arête $k \in \llbracket 1 ; p
+    \rrbracket$ ;
+
+  \item $\phi_k > 0$ la quantité maximale de troupes qu'il est
+    possible d'injecter ou de soutirer sur l'arête $k \in \llbracket 1
+    ; p \rrbracket$ à un instant donné via une de ses extrêmités
+    ($g_k$ ou $d_k$).
+\end{itemize}
+
+\section{Déroulé}
+
+Dans chaque camp, de nouvelles troupes arrivent en continu dans les
+centres du joueur et poussent les troupes déjà présentes sur le
+plateau. Celles-ci se répandent sur les arêtes libres, jusqu'à ce
+qu'elles rencontrent des troupes adverses, ce qui entraîne des
+destructions de part et d'autre.
+
+\subsection{Vocabulaire}
+
+\paragraph{Arête contrôlée} Une arête $k$ qui est intégralement occupée
+par des troupes d'un unique joueur, qui contrôle les deux nœuds $g_k$
+et $d_k$. Ces troupes représentent donc un volume $\gamma_k
+\lambda_k$. On note $A^1_q(t)$ l'ensemble des arêtes contrôlées par le
+joueur $q$ à l'instant $t$. Par définition, $A^1_q(t) \cap A^1_{\bar
+  q}(t) = \emptyset$.
+
+\paragraph{Arête rattachée} Une arête $k$ qui est partiellement occupée
+par des troupes. Ces troupes peuvent appartenir à un ou aux deux
+joueurs, et peuvent remplir l'arête à partir de $g_k$, de $d_k$, ou
+des deux nœuds en même temps. On notera en particulier qu'une arête
+non contrôlée sur laquelle un même joueur injecte des troupes depuis
+$g_k$ et $d_k$ est une arête rattachée. On note :
+\begin{itemize}
+  \item $u_{k,q}(t)$ le ou les nœuds par lequel les troupes du joueur
+    $q$ peuvent accèder à l'arête rattachée $k$ à l'instant $t$ ;
+    $u_{k,q}(t)$ est à valeurs dans $\{\{g_k\}, \{d_k\}, \{g_k,
+    d_k\}\}$ ;
+
+  \item $A^2_q(t)$ l'ensemble des arêtes rattachées à $q$ à l'instant
+    $t$. Par définition, $A^1_q(t) \cap A^2_q(t) = \emptyset$, mais on
+    peut avoir $A^2_q(t) \cap A^2_{\bar q}(t) \neq \emptyset$.
+\end{itemize}
+Pour toute arête $k \in A^2_q(t) \cup A^2_{\bar q}(t)$, on note :
+\begin{itemize}
+  \item $x^g_k(t)$ l'abscisse sur l'arête atteinte à l'instant $t$ par
+    les troupes arrivant de $g_k$ ;
+
+  \item $x^d_k(t)$ l'abscisse sur l'arête atteinte à l'instant $t$ par
+    les troupes arrivant de $d_k$.
+\end{itemize}
+$x^g_k(t)$ et $x^d_k(t)$ obéissent par ailleurs à la relation :
+\begin{equation}
+  0 \leq x^g_k(t) < x^d_k(t) \leq \lambda_k
+\end{equation}
+en considérant par convention que l'abscisse d'ordonnée 0 se trouve au
+nœud $g_k$.
+
+\paragraph{Arête disputée} Une arête $k$ qui est intégralement occupée
+par des troupes, mais dont les extrêmités gauche et droite sont
+occupées par des joueurs différents. On note :
+\begin{itemize}
+  \item $v_{k,q}(t)$ le nœud par lequel les troupes du joueur $q$
+    peuvent accèder à l'arête disputée $k$ à l'instant $t$ ;
+    $v_{k,q}(t)$ est à valeurs dans $\{g_k, d_k\}$, et
+    $v_{k,q}(t) \cup v_{k,{\bar q}}(t) = \{g_k, d_k\}$ ;
+
+  \item $B(t)$ l'ensemble des arêtes disputées à l'instant $t$. Par
+    définition, $B(t) \cap A^1_q(t) = B(t) \cap A^2_q(t) = \emptyset$
+    pour tout $q$.
+\end{itemize}
+Pour toute arête $k \in B(t)$, on note $y_k(t) \in [0 ; \lambda_k]$
+l'abscisse à laquelle les troupes de $q$ et $\bar q$ sont en contact à
+l'instant $t$.
+
+\paragraph{Arête neutre} Une arête qui ne contient aucune
+troupe.
+
+\paragraph{Nœud dépendant} Un nœud relié à une portion d'arête contrôlée
+par $q$, rattachée à $q$, ou disputée. Dit autrement, si $i$ est un
+nœud dépendant de $q$, il existe $k \in P_i$ tel que :
+\begin{itemize}
+  \item $k \in A^1_q(t)$ ;
+
+  \item ou $k \in A^2_q(t)$ et $i \in u_{k,q}(t)$ ;
+
+  \item ou $k \in B_q(t)$ et $i = v_{k,q}(t)$.
+\end{itemize}
+On note $N_q(t)$ l'ensemble des nœuds dépendants de $q$ à l'instant
+$t$.
+
+\paragraph{Nœud disputé} Un nœud dépendant à la fois de $q$ et ${\bar q}$.
+On note $N^\star(t)$ l'ensemble des nœuds disputés à l'instant $t$ :
+$N^\star(t) = N_q(t) \cap N_{\bar q}(t)$.
+
+\paragraph{Ordre} La quantité instantanée de troupes du joueur $q$ qui
+quittent l'arête $k$ à l'instant $t$ pour transiter par le nœud
+$i$. Pour tout $t$, pour tout $i \in N_q(t)$, pour tout $k \in P_i$,
+on note $a_{q,i,k}(t)$ l'ordre émis par le joueur $q$ pour cette
+combinaison de nœud et d'arête. Par convention, $a_{q,i,k}(t) > 0$
+correspond à un mouvement de troupes depuis l'arête vers le nœud,
+alors que $a_{q,i,k}(t) < 0$ correspond à un mouvement de troupes
+depuis le nœud vers l'arête. Les ordres sont soumis à des contraintes
+(cf.~\ref{déroulé:actions}).
+
+\paragraph{Nœud générateur} Un centre $i \in C_q$ qui génère effectivement
+des troupes pour le joueur $q$. Pour cela, le nœud ne doit jamais
+avoir été contrôlé par l'ennemi (cf. ci-après). Afin de distinguer un
+centre qui ne génère plus de troupes pour le joueur $q$ d'un nœud
+générateur, on introduit la notation $\delta_{q,i}(t) \in \{0, 1\}$,
+avec la relation :
+\begin{equation}
+  \label{eq:noeud-generateur}
+  \delta_{q,i}(t) = 1 \Leftrightarrow \forall s \leq t, \alpha_{q,i} + \sum_{k \in P_i} \max \left( a_{q,i,k}(s), 0 \right) > \alpha_{{\bar q},i} + \sum_{k \in P_i} \max \left( a_{{\bar q},i,k}(s), 0 \right).
+\end{equation}
+La quantité de troupes produites à l'instant $t$ par $i \in C_q$ est
+alors notée $\alpha_{q,i} \delta_{q,i}(t)$. On note ${\tilde C}_q(t)
+\subset C_q$ l'ensemble des nœuds générateurs de $q$ à l'instant $t$.
+
+\paragraph{Nœud contrôlé} Un nœud disputé sur lequel le joueur injecte
+plus de troupes que son adversaire à l'instant $t$. Ainsi, le nœud $i
+\in N^\star(t)$ est contrôlé par le joueur $q$ à l'instant $t$ si et
+seulement si :
+\begin{equation}
+  \label{eq:noeud-controle}
+  \alpha_{q,i} \delta_{q,i}(t) + \sum_{k \in P_i} \max \left( a_{q,i,k}(t), 0 \right) > \alpha_{{\bar q},i} \delta_{{\bar q},i}(t) + \sum_{k \in P_i} \max \left( a_{{\bar q},i,k}(t), 0 \right).
+\end{equation}
+On note $N'_q(t)$ l'ensemble des nœuds contrôlés par $q$. On notera
+qu'on a par ailleurs $N'_{\bar q}(t) = N^\star(t) \backslash N'_q(t)$,
+c'est-à-dire l'ensemble des nœuds disputés non contrôlés par $q$.
+
+\paragraph{Nœud ravitaillé} Un nœud $i$ dépendant de $q$ qui est relié à un
+nœud générateur de $q$ par un chemin connexe constitué uniquement
+d'arêtes contrôlées par $q$ et de nœuds contrôlés par $q$ ou non disputés.
+
+\subsection{Actions des joueurs}
+\label{déroulé:actions}
+
+Le joueur $q$ influe sur le plateau de jeu via les ordres
+$(a_{q,i,k})$. Ces ordres déterminent les mouvements de leurs troupes,
+et doivent respecter à tout instant un ensemble de contraintes.
+
+\paragraph{Nœuds et arêtes non-concernés} Les ordres sur les nœuds non
+dépendants sont nécessairement nuls :
+\begin{equation}
+  \forall q, \forall i \notin N_q(t), \forall k \in P_i, a_{q,i,k}(t) = 0.
+\end{equation}
+
+\paragraph{{\'E}quilibre des nœuds} Un nœud ne peut pas
+héberger de troupes ; si les soutirages sur des arêtes et les troupes
+détruites dans les affrontements ne compensent pas la génération et
+les injections de troupes, les troupes surnuméraires sont
+perdues. Pour les nœuds disputés contrôlés par $q$, on doit avoir :
+\begin{equation}
+  \label{eq:equilibre-noeud:disputé:possesseur}
+  \forall i \in N'_q(t), \alpha_{q,i} \delta_{q,i}(t) + \sum_{k \in P_i} a_{q,i,k}(t) - \sum_{k \in P_i} a_{{\bar q},i,k}(t) \geq 0.
+\end{equation}
+Pour les nœuds disputés contrôlés par $\bar q$, on doit avoir pour $q$
+:
+\begin{equation}
+  \forall i \in N'_{\bar q}(t), \forall k \in P_i, a_{q,i,k}(t) \geq 0.
+\end{equation}
+Pour les nœuds non disputés, on doit avoir :
+\begin{equation}
+  \forall i \in N_q(t) \backslash N'_q(t), \alpha_{q,i} \delta_{q,i}(t) + \sum_{k \in P_i} a_{q,i,k}(t) \geq 0.
+\end{equation}
+
+\paragraph{Quantité maximale d'injection~/~soutirage} Les ordres doivent
+respecter la quantité maximale de troupes qu'il est possible
+d'injecter ou de soutirer sur l'arête :
+\begin{equation}
+    \forall i \in N_q(t), \forall k \in P_i, |a_{q,i,k}(t)| \leq \phi_k.
+\end{equation}
+
+\paragraph{{\'E}quilibre des arêtes contrôlées} La quantité de troupes
+sur une arête contrôlée doit rester constante ; l'injection a une
+extrêmité doit donc être exactement compensée par un soutirage à
+l'autre extrêmité, et réciproquement :
+\begin{equation}
+    \forall k \in A^1_q(t), a_{q,g_k,k}(t) = -a_{q,d_k,k}(t).
+\end{equation}
+
+\paragraph{Sens de poussée} Les mouvements de troupe ne peuvent aboutir
+qu'à une poussée sur les arêtes rattachées à $q$ ou disputées,
+c'est-à-dire :
+\begin{equation}
+  \label{eq:sens-poussée:rattachée}
+    \forall k \in A^2_q(t), \forall i \in u_{k,q}(t), a_{q,i,k}(t) \leq 0
+\end{equation}
+et :
+\begin{equation}
+  \label{eq:sens-poussée:disputée}
+    \forall k \in B(t), a_{q,v_{k,q}(t),k}(t) \leq 0.
+\end{equation}
+
+\subsection{{\'E}vénements}
+
+On appelle \og événement \fg{} une situation où le jeu est mis en
+pause afin que les joueurs puissent modifier les ordres
+$(a_{q,i,k})$. Les événements correspondent aux situations suivantes :
+\begin{enumerate}
+  \item\label{déroulé:événements:contrôle-arête} une arête rattachée à
+    $q$ devient une arête contrôlée par $q$ ;
+
+  \item\label{déroulé:événements:dispute-arête} une arête rattachée à
+    $q$ et $\bar q$ devient une arête disputée ;
+
+  \item\label{déroulé:événements:changement-ordre} le joueur $q$
+    souhaite modifier ses ordres $(a_{q,i,k})$.
+\end{enumerate}
+En particulier, l'événement~\ref{déroulé:événements:dispute-arête}
+couvre les situations où l'évolution des positions sur le plateau
+amène à devoir modifier les ordres afin de continuer à respecter les
+contraintes de la sous-section~\ref{déroulé:actions}.
+
+Au moment d'un événement, chaque joueur $q$ peut mettre à jour
+l'ensemble de ses ordres $(a_{q,i,k})$, dans le respect des
+contraintes de~\ref{déroulé:actions}. Ces modifications sont faites en
+parallèle : $q$ modifie ses ordres sans avoir connaissance des
+modifications que fera $\bar q$, et réciproquement. Une fois que les
+deux jours ont fini de modifier leurs ordres, la partie reprend.
+
+Suite à un événement, un délai de neutralisation est mis en œuvre,
+pendant lequel les joueurs ne peuvent pas déclencher un événement du
+type~\ref{déroulé:événements:changement-ordre} : cela permet d'éviter
+que la partie soit bloquée par des aller-retours incessants pour
+contrer les choix de l'adversaire.
+
+\subsection{{\'E}quations d'évolution}
+
+L'évolution de la position des troupes sur une arête dépend de la
+quantité de troupes injectée par les joueurs et, éventuellement, de la
+présence de l'adversaire\footnote{Pour la suite des équations, on
+rappelle que les $(a_{q,i,k})$ sont en convention \og nœud \fg{} et
+sont forcèment négatifs ou nuls pour les arêtes rattachées ou
+disputées (cf.~\eqref{eq:sens-poussée:rattachée} et
+\eqref{eq:sens-poussée:disputée}), ce qui signifie qu'il est
+uniquement possible d'injecter des troupes sur l'arête. En outre, sur
+une arête $k$, on considère toujours que l'abscisse 0 se trouve au
+nœud $g_k$.}.
+
+\paragraph{Cas d'une arête rattachée} Pour les arêtes rattachées,
+l'évolution des positions est donnée par :
+\begin{equation}
+  \forall k \in A^2_q(t) \cup A^2_{\bar q}(t), dx^g_k(t) = -\frac{a^g_k(t)}{\gamma_k} dt \text{~et~} dx^d_k(t) = +\frac{a^d_k(t)}{\gamma_k} dt
+\end{equation}
+en écrivant par abus de notation $a^g_k(t) = a_{q,g_k,k}(t)$ si $q$
+contrôle le nœud $k$, et $a^g_k(t) = 0$ si le nœud $g_k$ n'est
+contrôlé par aucun joueur (idem pour $a^d_k(t)$). Sous l'hypothèse que
+$a^g_k$ et $a^d_k$ sont des constantes, et toutes choses égales par
+ailleurs, on a donc :
+\begin{equation}
+\begin{cases}
+  x^g_k(t) = x^g_k(0)  -\frac{a^g_k}{\gamma_k} t \\
+  x^d_k(t) = x^d_k(0) + \frac{a^d_k}{\gamma_k} t.
+\end{cases}
+\end{equation}
+Si $a^g_k + a^d_k < 0$, l'arête change alors d'état à l'instant $t$
+tel que :
+\begin{equation}
+  t = \frac{\gamma_k \left( x^g_k(0) - x^d_k(0) \right)}{a^g_k + a^d_k}.
+\end{equation}
+Cela correspond à l'une des trois configurations suivantes :
+\begin{itemize}
+  \item les segments gauche et droit se rencontrent ;
+
+  \item le segment droit est vide et le segment gauche remplit
+    intégralement l'arête ;
+
+  \item symétriquement, le segmet gauche est vide et le segmet droit
+    remplit intégralement l'arête.
+\end{itemize}
+Dans tous les cas, cela engendre un événement de type
+\ref{déroulé:événements:contrôle-arête} ou
+\ref{déroulé:événements:dispute-arête}, en fonction du contrôle des
+nœuds $g_k$ et $d_k$.
+
+\paragraph{Cas d'une arête disputée} Pour les arêtes disputées, l'évolution
+des positions est donnée par :
+\begin{equation}
+  \forall k \in B(t), dy_k(t) = \frac{a_{{\bar q},d_k,k} - a_{q,g_k,k}}{2 \gamma_k} dt
+\end{equation}
+en notant $q$ le joueur qui contrôle le nœud $g_k$ et $\bar q$ son
+adversaire. Sous l'hypothèse que $a_{{\bar q},d_k,k}$ et $a_{q,g_k,k}$
+sont des constantes, et toutes choses égales par ailleurs, on a donc :
+\begin{equation}
+  y_k(t) = y_k(0) + \frac{a_{{\bar q},d_k,k} - a_{q,g_k,k}}{2 \gamma_k} t
+\end{equation}
+Si $a_{{\bar q},d_k,k} - a_{q,g_k,k} > 0$, le joueur $q$ progresse sur
+l'arête au détriment de $\bar q$ et l'occupe intégralement à l'instant
+$t$ tel que :
+\begin{equation}
+  t = \frac{2 \gamma_k \left( \lambda_k - y_k(0) \right)}{a_{{\bar q},d_k,k} - a_{q,g_k,k}}
+\end{equation}
+Inversement, si $a_{{\bar q},d_k,k} - a_{q,g_k,k} < 0$, c'est $\bar q$
+qui progresse au détriment de $q$ et occupe intégralement l'arête à
+l'instant $t$ tel que :
+\begin{equation}
+  t = \frac{-2 \gamma_k y_k(0)}{a_{{\bar q},d_k,k} - a_{q,g_k,k}}
+\end{equation}
+Si le fait qu'un joueur atteigne le nœud adverse change le contrôle de
+ce nœud, cela correspond à un événement de
+type~\ref{déroulé:événements:contrôle-arête}.
+
+\subsection{Perte de contrôle d'un nœud}
+\label{déroulé:perte-nœud}
+
+Le contrôle d'un nœud change dans le cadre d'un événement de type
+\ref{déroulé:événements:contrôle-arête} ou
+\ref{déroulé:événements:changement-ordre}. Cela correspond à l'instant
+où l'inégalité \eqref{eq:noeud-controle} cesse d'être vraie. Le
+changement de contrôle d'un nœud a plusieurs effets, qui sont résolus
+immédiatement, avant que les joueurs puissent mettre à jour leurs
+ordres.
+
+En premier lieu, si $i$ était un nœud générateur pour le joueur $q$,
+il cesse de l'être : pour tout $s \geq t$, on a désormais
+$\delta_{q,i}(s) = 0$, en application de l'équation
+\eqref{eq:noeud-generateur}.
+
+D'autre part, la perte de contrôle de ce nœud est susceptible de
+modifier l'ensemble des nœuds ravitaillés par $q$. Les troupes de $q$
+présentes sur toutes les arêtes contrôlées par $q$, rattachées à $q$
+ou disputées qui ne sont plus reliées à un nœud ravitaillé par $q$
+sont immédiatement supprimées de la carte.
+
+\subsection{Fin du jeu}
+
+La partie se termine lorsque le joueur $q$ n'a plus aucun nœud
+générateur. Par construction (cf.~\ref{déroulé:perte-nœud}), il n'a
+alors plus de troupes sur le plateau. Ce joueur perd la partie et
+$\bar q$ est vainqueur.
+
+\printbibliography
+
+\end{document}

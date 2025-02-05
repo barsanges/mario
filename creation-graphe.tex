@@ -1,0 +1,197 @@
+\documentclass[a4paper,11pt,headings=normal]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{biblatex}
+\usepackage{amsthm}
+\usepackage{newtx, helvet, courier} % Fontes
+\usepackage{booktabs, multirow, hyperref, xcolor}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\frenchsetup{AutoSpaceFootnotes=false}
+
+\newtheoremstyle{mythm}% name
+{0.5\baselineskip plus 0.2\baselineskip minus 0.2\baselineskip}% Space above
+{0.5\baselineskip plus 0.2\baselineskip minus 0.2\baselineskip}% Space below
+{\itshape}% Body font
+{\parindent}% Indent amount
+{}% Theorem head font
+{.}% Punctuation after theorem head
+{.5em}% Space after theorem head
+{\thmname{{\scshape#1}}\thmnumber{ #2}\thmnote{~---~#3}}% Theorem head spec (can be left empty, meaning ‘normal’)
+\theoremstyle{mythm}
+\newtheorem{cas}{Cas}
+
+\definecolor{rouge}{RGB}{191, 35, 41}
+
+\renewcommand{\sectionformat}{\thesection\autodot\enskip}
+\renewcommand{\subsectionformat}{\thesubsection\autodot\enskip}
+\RedeclareSectionCommand[indent=\the\parindent]{subsection}
+\setkomafont{disposition}{}
+\setkomafont{section}{\bfseries\large}
+\setkomafont{subsection}{\itshape\normalsize}
+\setkomafont{paragraph}{\itshape}
+
+\setlist[1]{noitemsep,topsep=0mm,left=\parindent}
+\setlist[2]{noitemsep,topsep=0mm,left=0pt}
+\setlist[enumerate,1]{label=(\alph*)}
+
+\urlstyle{same}
+
+\addbibresource{citations.bib}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=blue,
+    pdftitle={Mario - Création d'un graphe admissible},
+}
+
+\begin{document}
+
+\begin{flushleft}
+{\small \sffamily \url{https://github.com/barsanges/mario}}\vspace{0.8em}
+
+{\raggedleft \bfseries\LARGE Génération d'un graphe
+  admissible}\vspace{0.8em}
+
+{\itshape Version \input{VERSION}}
+\end{flushleft}
+
+\section{Introduction}
+
+Ce document appartient au corpus des spécifications fonctionnelles de
+\emph{Mario}, dont le document principal est
+\cite{MarioReglesCourant}, et définit une manière de générer un
+plateau de jeu admissible pour \emph{Mario}.
+
+\section{Algorithme}
+\label{algorithme}
+
+L'algorithme présenté ci-dessous génère à la fois un graphe et des
+coordonnées pour représenter les nœuds (et partant le graphe) dans le
+plan. Dans la suite, toutes les distances s'entendent en norme $L_2$.
+
+\subsection{Paramètres}
+\label{algorithme:parametres}
+
+L'utilisateur doit indiquer les paramètres suivants :
+\begin{itemize}
+  \item $n$ le nombre de nœuds à générer ;
+
+  \item $0 < \varepsilon < 0.1$ la distance minimale entre deux nœuds
+    ;
+
+  \item $1 < k \leq n$ le nombre d'arêtes par nœud (i.e. : pour un
+    nœud donné, $k$ arêtes aboutissent à ce nœud) ;
+
+  \item $u \leq v$ les nombres minimal et maximal de centres par camp
+    ;
+
+  \item $\omega \in \mathbb{R}^+$ la quantité totale de troupes
+    générées par chaque camp au début de la partie.
+\end{itemize}
+
+\subsection{Génération des nœuds}
+\label{algorithme:noeuds}
+
+On génère $n$ coordonnées distinctes à valeurs dans $[0 ; 1]\times[0 ;
+  1]$ par tirage aléatoire suivant une loi uniforme.
+
+Pour chaque paire de nœuds distants l'un de l'autre de moins de
+$\varepsilon$, on élague le nœud de la paire le plus proche du point
+de coordonnées $(0.5, 0.5)$. On traite les paires de nœuds en fonction
+de la distance entre le barycentre des deux nœuds et le point de
+coordonnées $(0.5, 0.5)$.
+
+{\`A} la suite de cette étape, il est possible qu'il y ait moins de
+$n$ nœuds.
+
+\subsection{Génération des arêtes}
+\label{algorithme:aretes}
+
+Pour chaque nœud $i$ généré à l'étape précédente, on crée une arête
+entre ce nœud et chacun de ses $k$ plus proches voisins.
+
+On trie alors l'ensemble des arêtes obtenues par longueur croissante
+(chaque arête est un segment). On parcourt l'ensemble trié et on
+supprime l'arête si elle croise une autre arête. En notant
+$((x^A_1,y^A_1), (x^A_2,y^A_2))$ les coordonnées des extrêmités de
+l'arête $A$ (avec par convention $x^A_1 \leq x^A_2$), celle-ci croise
+l'arête $B$ si et seulement si :
+\begin{equation}
+  \max \left( x^A_1, x^B_1 \right) \leq \frac{b^A - b^B}{a^A - a^B} \leq \min \left( x^A_2, x^B_2 \right)
+\end{equation}
+avec :
+\begin{equation}
+  a^A = \frac{y^A_1 - y^A_2}{x^A_1 - x^A_2}, \text{~resp.~}a^B
+\end{equation}
+\begin{equation}
+  b^A = \frac{y^A_1 x^A_2 - y^A_2 x^A_1}{x^A_2 - x^A_1}, \text{~resp.~}b^B.
+\end{equation}
+On notera que, à l'issue de cette phase d'élagage, certains nœuds
+peuvent avoir moins de $k$ arêtes.
+
+À l'issue de cette phase, on vérifie que le graphe est connexe. S'il
+ne l'est pas, la génération s'arrête.
+
+\subsection{Détermination des centres et de leur capacité}
+\label{algorithme:centres}
+
+L'utilisateur indique une fourchette $\llbracket u ; v \rrbracket$ du
+nombre de centres par camp. Pour le camp $q$ (resp. $\bar q$), on tire
+alors un nombre de centres $w \in \llbracket u ; v \rrbracket$, qu'on
+choisit de manière aléatoire parmi les centres identifiés à
+l'étape~\ref{algorithme:noeuds} situé au-dessous (resp. au-dessus) de
+la droite $y = 1 - x$. Si le nombre de centres éligibles est inférieur
+à $v$, la génération s'arrête.
+
+Pour chaque camp, on détermine la capacité des $w$ centres retenus en
+appliquant l'algorithme suivant :
+\begin{enumerate}
+  \item {\`A} l'étape $1 \leq k \leq w$, on choisit aléatoirement un
+    nœud parmi les $w + 1 - k$ nœuds non encore traités.
+
+  \item On détermine aléatoirement la capacité $\alpha_k$ de ce nœud
+    en la tirant dans l'intervalle $[ (\omega - \sum_{i=1}^{k-1}
+      \alpha_i) / (w + 2 - k) ; 2 (\omega - \sum_{i=1}^{k-1} \alpha_i)
+      / (w + 2 - k)]$, sauf à l'étape $w$ où la capacité du nœud est
+    obligatoirement $\omega - \sum_{i=1}^{w-1} \alpha_i$.
+\end{enumerate}
+
+\subsection{Détermination des capacités des arêtes}
+\label{algorithme:capacites}
+
+Pour déterminer la capacité $\gamma$ des arêtes, on applique
+l'algorithme suivant :
+\begin{enumerate}
+  \item\label{algorithme:capacites:etapes:score} On accorde à chaque
+    nœud dont toutes les arêtes non pas été traitées un score
+    correspondant à la somme de sa capacité s'il s'agit d'un centre
+    (indépendamment du camp auquel il appartient en début de partie)
+    et de la somme des capacités des arêtes qui sont reliées à ce nœud
+    et qui ont déjà été traitées.
+
+  \item On traite le nœud dont le score est le plus élevé.
+
+  \item\label{algorithme:capacites:etapes:capacites} On définit alors
+    la capacité $\gamma_k$ de chacune des arêtes reliées à ce nœud et
+    non encore traitées selon la formule suivante :
+    \begin{equation}
+      \gamma_k = \frac{\theta \lambda_k}{\sum_{i \in U} \lambda_i}
+    \end{equation}
+    où $\theta$ est le score du nœud calculé à
+    l'étape~\ref{algorithme:capacites:etapes:score}, $U$ est
+    l'ensemble des arêtes reliées au nœud et non traitées avant le
+    début de l'étape~\ref{algorithme:capacites:etapes:capacites}, et
+    $\lambda_k$ est la longueur de l'arête $k \in U$.
+\end{enumerate}
+On réitère ces opérations jusqu'à ce que tous les nœuds (et donc
+toutes les arêtes) aient été traités.
+
+\printbibliography
+
+\end{document}

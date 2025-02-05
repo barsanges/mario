@@ -1,0 +1,178 @@
+\documentclass[a4paper,11pt,headings=normal]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{biblatex}
+\usepackage{amsthm}
+\usepackage{newtx, helvet, courier} % Fontes
+\usepackage{booktabs, multirow, hyperref, xcolor}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\frenchsetup{AutoSpaceFootnotes=false}
+
+\newtheoremstyle{mythm}% name
+{0.5\baselineskip plus 0.2\baselineskip minus 0.2\baselineskip}% Space above
+{0.5\baselineskip plus 0.2\baselineskip minus 0.2\baselineskip}% Space below
+{\itshape}% Body font
+{\parindent}% Indent amount
+{}% Theorem head font
+{.}% Punctuation after theorem head
+{.5em}% Space after theorem head
+{\thmname{{\scshape#1}}\thmnumber{ #2}\thmnote{~---~#3}}% Theorem head spec (can be left empty, meaning ‘normal’)
+\theoremstyle{mythm}
+\newtheorem{cas}{Cas}
+
+\definecolor{rouge}{RGB}{191, 35, 41}
+
+\renewcommand{\sectionformat}{\thesection\autodot\enskip}
+\renewcommand{\subsectionformat}{\thesubsection\autodot\enskip}
+\RedeclareSectionCommand[indent=\the\parindent]{subsection}
+\setkomafont{disposition}{}
+\setkomafont{section}{\bfseries\large}
+\setkomafont{subsection}{\itshape\normalsize}
+\setkomafont{paragraph}{\itshape}
+
+\setlist[1]{noitemsep,topsep=0mm,left=\parindent}
+\setlist[2]{noitemsep,topsep=0mm,left=0pt}
+\setlist[enumerate,1]{label=(\alph*)}
+
+\urlstyle{same}
+
+\addbibresource{citations.bib}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=blue,
+    pdftitle={Mario - Intelligence artificielle},
+}
+
+\begin{document}
+
+\begin{flushleft}
+{\small \sffamily \url{https://github.com/barsanges/mario}}\vspace{0.8em}
+
+{\raggedleft \bfseries\LARGE Intelligence artificielle}\vspace{0.8em}
+
+{\itshape Version \input{VERSION}}
+\end{flushleft}
+
+\section{Introduction}
+
+Ce document appartient au corpus des spécifications fonctionnelles de
+\emph{Mario}, dont le document principal est
+\cite{MarioReglesCourant}, et définit la manière dont le joueur
+ordinateur $q$ définit ses ordres $(a_{q,i,k})$. La
+section~\ref{temporalite} décrit d'abord à quels moments le joueur
+recalcule ses ordres, puis la section~\ref{decisions} décrit comment
+il les recalcule.
+
+Les notations utilisées dans ce document reprennent celles de
+\cite{MarioReglesCourant}.
+
+\section{Instants de prise de décision}
+\label{temporalite}
+
+Le joueur ordinateur $q$ recalcule ses ordres dans trois situations
+qui correspondent aux trois événements de la section 3.3 de
+\cite{MarioReglesCourant} :
+\begin{enumerate}
+  \item une arête rattachée à un joueur devient une arête contrôlée
+    par ce même joueur ;
+
+  \item une arête rattachée à $q$ et $\bar q$ devient une arête
+    disputée ;
+
+  \item à la fin du délai de neutralisation suivant l'événement (c) de
+    \cite{MarioReglesCourant}, lorsque celui-ci a été déclenché par
+    $\bar q$.
+\end{enumerate}
+
+\section{Prise de décision}
+\label{decisions}
+
+L'algorithme mis en œuvre consiste à déterminer un ensemble d'ordres
+$(a_{q,i,k})$ admissibles, au sens où ils respectent l'ensemble des
+contraintes de la section~3.2 de \cite{MarioReglesCourant}, et à faire
+en sorte que ces ordres maximisent une fonction objectif. Le
+paragraphe~\ref{decisions:poids-arete} décrit d'abord comment un poids
+est associé à chaque arête en début de partie, puis le
+paragraphe~\ref{decisions:fonction-objectif} présente la fonction
+objectif que l'on cherche à maximiser pour une prise de décision à
+l'instant $t$.
+
+\subsection{Poids associés à chaque arête}
+\label{decisions:poids-arete}
+
+En début de partie, un poids $\xi^q_k$ est associée à chaque arête
+$k \in \llbracket 1 ; p \rrbracket$ en fonction de sa position par
+rapport aux centres de $q$. Pour déterminer les $(\xi^q_k)$, on
+applique l'algorithme suivant :
+\begin{enumerate}
+  \item\label{decisions:poids-arete:etapes:score-noeud} On accorde à
+    chaque nœud dont toutes les arêtes non pas été traitées un score
+    correspondant à la somme de sa capacité s'il s'agit d'un centre de
+    $q$, et de la somme des scores des arêtes qui sont reliées à ce
+    nœud et qui ont déjà été traitées.
+
+  \item On traite le nœud dont le score est le plus élevé.
+
+  \item\label{decisions:poids-arete:etapes:score-arete} On définit
+    alors le score $\xi^q_k$ de chacune des arêtes reliées à ce
+    nœud et non encore traitées selon la formule suivante :
+    \begin{equation}
+      \xi^q_k = \frac{\theta \gamma_k \lambda_k}{\sum_{i \in U}
+        \gamma_i \lambda_i}
+    \end{equation}
+    où $\theta$ est le score du nœud calculé à
+    l'étape~\ref{decisions:poids-arete:etapes:score-noeud} et $U$ est
+    l'ensemble des arêtes reliées au nœud et non traitées avant le
+    début de l'étape~\ref{decisions:poids-arete:etapes:score-arete}.
+\end{enumerate}
+On réitère ces opérations jusqu'à ce que tous les nœuds (et donc
+toutes les arêtes) aient été traités. On remarquera que cet algorithme
+est assez similaire à celui du paragraphe~2.5 de
+\cite{MarioGrapheCourant}.
+
+On détermine de la même manière un poids $\xi^{\bar q}_k$ en
+fonction de la position de l'arête $k$ par rapport aux centres de
+$\bar q$.
+
+Le poids final de l'arête $k$, $\omega_k$, est alors simplement la
+somme de $\xi^q_k$ et $\xi^{\bar q}_k$.
+
+\subsection{Fonction objectif}
+\label{decisions:fonction-objectif}
+
+{\`A} l'instant $t$, le joueur ordinateur $q$ détermine des ordres
+$(a_{q,i,k})$ qui résolvent le problème suivant :
+\begin{equation}
+  \begin{aligned}
+    \max_{(a_{q,i,k})} \quad & -\sum_{k \in A^2_q(t)} \sum_{i \in u_{k,q}(t)} a_{q,i,k}(t) \left( 1 - \sum_{j \in u_{k,{\bar q}}(t)} \left( \frac{a_{{\bar q},j,k}(t)}{\phi_k} \right)^- \right) \omega_k \\
+    & \quad - \sum_{k \in B(t)} a_{q,\nu_{k,q}(t),k}(t)  \left( 1 - \left( \frac{a_{{\bar q},\nu_{k,{\bar q}}(t),k}(t)}{\phi_k} \right)^- \right) \omega_k \\
+    \text{s.c.} \quad & \forall i \notin N_q(t), \forall k \in P_i, a_{q,i,k}(t) = 0 \\
+    & \forall i \in N'_q(t), \alpha_{q,i} \delta_{q,i}(t) + \sum_{k \in P_i} a_{q,i,k}(t) - \sum_{k \in P_i} a_{{\bar q},i,k}(t) \geq 0 \\
+    & \forall i \in N'_{\bar q}(t), \forall k \in P_i, a_{q,i,k}(t) \geq 0 \\
+    & \forall i \in N_q(t) \backslash N'_q(t), \alpha_{q,i} \delta_{q,i}(t) + \sum_{k \in P_i} a_{q,i,k}(t) \geq 0 \\
+    & \forall i \in N_q(t), \forall k \in P_i, -\phi_k \leq a_{q,i,k}(t) \leq \phi_k \\
+    & \forall k \in A^1_q(t), a_{q,g_k,k}(t) = -a_{q,d_k,k}(t) \\
+    & \forall k \in A^2_q(t), \forall i \in u_{k,q}(t), a_{q,i,k}(t) \leq 0 \\
+    & \forall k \in B(t), a_{q,v_{k,q}(t),k}(t) \leq 0 \\
+  \end{aligned}
+\end{equation}
+Ce problème est linéaire, il peut donc être résolu via un solveur de
+type \emph{Coin}.
+
+Les décisions prises par ce biais visent à occuper les arêtes les
+mieux connectées aux centres des deux joueurs, et à s'opposer de
+manière frontale au joueur adverse. Toutefois, elles n'intègrent pas
+de coordination à long terme (e.g. : \og si je bloque l'adversaire
+ici, est-ce que cela pourrait ouvrir une opportunité plus tard dans la
+partie ? \fg{}), et ne sont donc sans doute pas très bonnes.
+
+\printbibliography
+
+\end{document}
